@@ -24,13 +24,12 @@ dependencies:
   flutter:
     sdk: flutter
 
-  webview_flutter: ^1.0.5
+  webview_flutter: ^1.0.6
   flutter_markdown: ^0.5.0
   markdown: ^3.0.0
   html2md: ^0.5.1
-  url_launcher: ^5.7.8
+  url_launcher: ^5.7.10
   http: ^0.12.2
-  html_unescape: ^1.0.2
 
 dev_dependencies:
   flutter_test:

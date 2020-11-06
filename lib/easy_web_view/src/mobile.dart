@@ -1,3 +1,4 @@
+import 'package:easy_web_view_example/easy_web_view/easy_web_view.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -16,6 +17,7 @@ class EasyWebView extends StatefulWidget implements EasyWebViewImpl {
     this.headers = const {},
     @required this.onLoaded,
     this.widgetsTextSelectable = false,
+    this.crossWindowEvents = const [],
   })  : assert((isHtml && isMarkdown) == false),
         super(key: key);
 
@@ -51,6 +53,9 @@ class EasyWebView extends StatefulWidget implements EasyWebViewImpl {
 
   @override
   final void Function() onLoaded;
+
+  @override
+  final List<CrossWindowEvent> crossWindowEvents;
 }
 
 class _EasyWebViewState extends State<EasyWebView> {
@@ -124,6 +129,16 @@ class _EasyWebViewState extends State<EasyWebView> {
               widget.onLoaded();
             }
           },
+          javascriptChannels: widget.crossWindowEvents.isNotEmpty
+              ? widget.crossWindowEvents
+                  .map((crossWindowEvent) => JavascriptChannel(
+                        name: crossWindowEvent.name,
+                        onMessageReceived: (javascriptMessage) =>
+                            crossWindowEvent
+                                .eventAction(javascriptMessage.message),
+                      ))
+                  .toSet()
+              : [].toSet(),
         );
       },
     );

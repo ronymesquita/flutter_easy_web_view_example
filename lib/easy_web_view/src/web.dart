@@ -1,8 +1,8 @@
 import 'dart:html' as html;
 import 'dart:ui' as ui;
 
+import 'package:easy_web_view_example/easy_web_view/easy_web_view.dart';
 import 'package:flutter/material.dart';
-import 'package:html_unescape/html_unescape.dart';
 
 import 'impl.dart';
 
@@ -18,6 +18,7 @@ class EasyWebView extends StatefulWidget implements EasyWebViewImpl {
     this.convertToWidgets = false,
     this.headers = const {},
     this.widgetsTextSelectable = false,
+    this.crossWindowEvents = const [],
     @required this.onLoaded,
   })  : assert((isHtml && isMarkdown) == false),
         super(key: key);
@@ -54,6 +55,9 @@ class EasyWebView extends StatefulWidget implements EasyWebViewImpl {
 
   @override
   final void Function() onLoaded;
+
+  @override
+  final List<CrossWindowEvent> crossWindowEvents;
 }
 
 class _EasyWebViewState extends State<EasyWebView> {
@@ -65,10 +69,9 @@ class _EasyWebViewState extends State<EasyWebView> {
 
       _iframe.onLoad.listen((event) {
         widget?.onLoaded();
-
-        print(
-            'iframe content: ${HtmlUnescape().convert(_iframe.src.replaceAll('data:text/html;charset=utf-8,', ''))}');
       });
+      // _iframe.contentWindow
+      //     .addEventListener('message', (event) => print('Event: $event'));
     });
     super.initState();
   }
@@ -140,11 +143,25 @@ class _EasyWebViewState extends State<EasyWebView> {
       if (_iframeElementMap[widget.key] == null) {
         _iframeElementMap[widget.key] = html.IFrameElement();
       }
+
       final element = _iframeElementMap[widget.key]
         ..style.border = '0'
         ..allowFullscreen = widget.webAllowFullScreen
         ..height = height.toInt().toString()
         ..width = width.toInt().toString();
+
+      if (widget.crossWindowEvents.isNotEmpty) {
+        html.window.addEventListener('message', (event) {
+          final eventData = (event as html.MessageEvent).data;
+          widget.crossWindowEvents.forEach((crossWindowEvent) {
+            final crossWindowEventListener = crossWindowEvent.eventAction;
+            crossWindowEventListener(eventData);
+          });
+        });
+      }
+      // html.window.addEventListener('message',
+      //     (event) => print('Event: ${(event as html.MessageEvent).data}'));
+
       if (src != null) {
         String _src = src;
         if (widget.isMarkdown) {

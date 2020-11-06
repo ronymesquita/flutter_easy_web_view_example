@@ -31,7 +31,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
 
-    final htmlContent = """
+    final htmlContent = '''
 <html>
   <head>
     <meta charset="UTF-8">
@@ -42,6 +42,7 @@ class _MyHomePageState extends State<MyHomePage> {
   <body>
     <div id="summernote"></div>
     <script>
+    window.onload = function () {
       \$('#summernote').summernote({
         minHeight: ${screenSize.height * 0.64},
         maxHeight: ${screenSize.height * 0.64},
@@ -49,6 +50,11 @@ class _MyHomePageState extends State<MyHomePage> {
         callbacks: {
           onChange: function() {
             \$('#html-content').text(\$('#summernote').summernote('code'));
+            
+            window.parent.postMessage(\$('#summernote').summernote('code'), '*');
+            if (window.Test != null) {
+              window.Test.postMessage(\$('#summernote').summernote('code'));
+            }
           }
         },
         toolbar: [
@@ -61,22 +67,17 @@ class _MyHomePageState extends State<MyHomePage> {
           ['view', ['codeview']]
         ]
       });
+    }
     </script>
     <div id="html-content" style="display: none"></div>
   </body>
 </html>
-""";
+''';
 
     String htmlText = '';
     // GlobalKey<State> _key = GlobalKey();
-    EasyWebView easyWebView = EasyWebView(
-      src: htmlContent,
-      isHtml: true,
-      onLoaded: () {},
-    );
 
     /*
-      
       final regularExpression = r'<div id="html-content" style="display: none">(.*?)</div>';
       var htmlContent = '<div id="html-content" style="display: none"><p>Teste</p><p>Teste</p><p><span style="background-color: rgb(255, 255, 0);">Teste</span></p><p><img style="width: 42px;" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACoAAAAwCAYAAABnjuimAAAABHNCSVQICAgIfAhkiAAAABl0RVh0U29mdHdhcmUAZ25vbWUtc2NyZWVuc2hvdO8Dvz4AAABPSURBVFiF7c7BCQAhEACx8/rveW3Bx4AISQVZMzPfA/7bgVOiNdGaaE20JloTrYnWRGuiNdGaaE20JloTrYnWRGuiNdGaaE20JloTrYnWNk+2BFydzgMKAAAAAElFTkSuQmCC" data-filename="Square.png"><span style="background-color: rgb(255, 255, 0);"><br></span></p><p><span style="background-color: rgb(255, 255, 0);"><br></span><br></p></div>'.trim();
 
@@ -93,27 +94,65 @@ class _MyHomePageState extends State<MyHomePage> {
               focusScope.unfocus();
             }
           },
-          child: Container(
-            color: Color(0xFFFFFFFF),
-            child: Column(
-              children: [
-                OutlinedButton(
-                  onPressed: () {
-                    setState(() {
-                      htmlText = easyWebView.src;
-                    });
-                    print('HTML text: $htmlText');
-                  },
-                  child: Text('SHOW HTMLT CONTENT'),
+          child: LayoutBuilder(
+            builder: (_, viewportConstraints) => SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: viewportConstraints.maxHeight,
                 ),
-                Center(
-                  child: SizedBox(
-                    height: screenSize.height * 0.7,
-                    width: double.infinity,
-                    child: easyWebView,
+                child: IntrinsicHeight(
+                  child: Container(
+                    color: Color(0xFFFFFFFF),
+                    child: Column(
+                      children: [
+                        OutlinedButton(
+                          onPressed: () {
+                            showDialog<void>(
+                              context: context,
+                              barrierDismissible: true,
+                              builder: (BuildContext dialogContext) {
+                                return AlertDialog(
+                                  title: Text('HTML Content'),
+                                  content: Text(htmlText),
+                                  actions: <Widget>[
+                                    FlatButton(
+                                      child: Text('OK'),
+                                      onPressed: () {
+                                        Navigator.of(dialogContext)
+                                            .pop(); // Dismiss alert dialog
+                                      },
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                          },
+                          child: Text('SHOW HTML CONTENT'),
+                        ),
+                        Center(
+                          child: SizedBox(
+                            height: screenSize.height * 0.84,
+                            width: double.infinity,
+                            child: EasyWebView(
+                              src: htmlContent,
+                              isHtml: true,
+                              onLoaded: () {},
+                              crossWindowEvents: [
+                                CrossWindowEvent(
+                                    name: 'Test',
+                                    eventAction: (eventMessage) {
+                                      print(eventMessage);
+                                      htmlText = eventMessage;
+                                    }),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ],
+              ),
             ),
           ),
         ),
